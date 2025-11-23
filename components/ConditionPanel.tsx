@@ -24,6 +24,14 @@ const ConditionPanel: React.FC<ConditionPanelProps> = ({ conditionId, onConditio
   const hasData = chartData.length > 0;
   const description = CONDITION_DESCRIPTIONS[conditionId];
 
+  // ✅ 关键新增：根据数据量自动“稀疏显示红色点”
+  // 目标：点最多 ~60 个；数据少就每个点都显示
+  const dotStep = useMemo(() => {
+    const n = chartData.length;
+    if (n <= 120) return 1;        // 数据不多：每个点都画
+    return Math.ceil(n / 60);      // 数据很多：大约每 (n/60) 个画一个点
+  }, [chartData.length]);
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6 flex flex-col h-full border border-gray-100">
       {/* Header / Selector */}
@@ -105,7 +113,13 @@ const ConditionPanel: React.FC<ConditionPanelProps> = ({ conditionId, onConditio
                 dataKey="predict"
                 stroke="#ef4444" // Red
                 strokeWidth={2}
-                dot={{ r: 4, fill: '#ef4444' }} // Sparse data: Show dots
+                // ✅ 关键修改：只抽样显示点
+                dot={(props: any) => {
+                  const { cx, cy, index } = props;
+                  if (cx == null || cy == null || index == null) return null;
+                  if (index % dotStep !== 0) return null;
+                  return <circle cx={cx} cy={cy} r={3} fill="#ef4444" />;
+                }}
                 activeDot={{ r: 6 }}
                 connectNulls
               />
